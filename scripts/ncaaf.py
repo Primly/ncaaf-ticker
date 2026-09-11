@@ -152,6 +152,21 @@ def norm_game(g):
     except (ValueError, TypeError):
         epoch = 0
 
+    # NCAA splits kickoff into date ("09/10/2026") and time ("8:00 PM ET")
+    # fields; combine them ESPN-style ("9/10 - 8:00 PM ET") so upcoming
+    # games carry a date just like NFL's shortDetail does.
+    raw_date = str(game.get("startDate", "") or "")
+    raw_time = str(game.get("startTime", "") or "")
+    start_time = raw_time
+    try:
+        month, day, _year = raw_date.split("/")
+        if raw_time:
+            start_time = "%d/%d - %s" % (int(month), int(day), raw_time)
+        else:
+            start_time = "%d/%d" % (int(month), int(day))
+    except ValueError:
+        pass
+
     return {
         "id": str(game.get("gameID", "") or ""),
         "state": state,
@@ -167,7 +182,7 @@ def norm_game(g):
         "homeRecord": str(home.get("description", "") or ""),
         "awayConf": str(aconf.get("conferenceSeo", "") or "").lower(),
         "homeConf": str(hconf.get("conferenceSeo", "") or "").lower(),
-        "startTime": str(game.get("startTime", "") or ""),
+        "startTime": start_time,
         "startDate": str(game.get("startDate", "") or ""),
         "startEpoch": epoch,
         "network": str(game.get("network", "") or ""),
