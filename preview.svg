@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600">
+  <defs>
+    <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="white" stop-opacity="1"/>
+      <stop offset="0.82" stop-color="white" stop-opacity="1"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="clipfade">
+      <rect x="150" y="28" width="660" height="44" fill="url(#fade)"/>
+    </mask>
+  </defs>
+
+  <!-- bar strip -->
+  <rect x="20" y="12" width="920" height="76" rx="18" fill="#1a1d24"/>
+  <rect x="44" y="32" width="76" height="36" rx="9" fill="#c2410c"/>
+  <text x="82" y="58" font-family="Liberation Sans, sans-serif" font-size="20" font-weight="bold" fill="#ffffff" text-anchor="middle">CFB</text>
+  <g mask="url(#clipfade)">
+    <text x="150" y="60" font-family="Liberation Sans, sans-serif" font-size="22" fill="#f2f4f8">8:00 PM ET ESPN: Florida A&amp;M @ #7 Miami (FL)   •   7:00 PM ET ACC Network: Villanova @ #24 Louisville   •   8:00 PM ET FOX: #23 Missouri @ Kansas</text>
+  </g>
+
+  <!-- panel card -->
+  <rect x="180" y="120" width="600" height="440" rx="18" fill="#20242d" stroke="#3a4150" stroke-width="1.5"/>
+  <text x="216" y="162" font-family="Liberation Sans, sans-serif" font-size="15" font-weight="bold" letter-spacing="2" fill="#8b93a5">WEEK 2 • 2026</text>
+  <text x="216" y="194" font-family="Liberation Sans, sans-serif" font-size="24" font-weight="bold" fill="#f2f4f8">No games live — TV schedule</text>
+  <text x="216" y="218" font-family="Liberation Sans, sans-serif" font-size="14" fill="#8b93a5">86 games • networks via ESPN</text>
+
+  <line x1="216" y1="238" x2="744" y2="238" stroke="#3a4150" stroke-width="1.5"/>
+
+  <text x="216" y="268" font-family="Liberation Sans, sans-serif" font-size="15" font-weight="bold" letter-spacing="2" fill="#8b93a5">UPCOMING</text>
+  <text x="216" y="296" font-family="Liberation Sans, sans-serif" font-size="19" font-weight="bold" fill="#f2f4f8">Florida A&amp;M @ #7 Miami (FL)</text>
+  <text x="216" y="320" font-family="Liberation Sans, sans-serif" font-size="15" fill="#8b93a5">8:00 PM ET  •  ESPN</text>
+  <text x="216" y="356" font-family="Liberation Sans, sans-serif" font-size="19" font-weight="bold" fill="#f2f4f8">Villanova @ #24 Louisville</text>
+  <text x="216" y="380" font-family="Liberation Sans, sans-serif" font-size="15" fill="#8b93a5">7:00 PM ET  •  ACC Network</text>
+  <text x="216" y="416" font-family="Liberation Sans, sans-serif" font-size="19" font-weight="bold" fill="#f2f4f8">#23 Missouri @ Kansas</text>
+  <text x="216" y="440" font-family="Liberation Sans, sans-serif" font-size="15" fill="#8b93a5">8:00 PM ET  •  FOX</text>
+
+  <line x1="216" y1="460" x2="744" y2="460" stroke="#3a4150" stroke-width="1.5"/>
+  <text x="216" y="490" font-family="Liberation Sans, sans-serif" font-size="15" font-weight="bold" letter-spacing="2" fill="#8b93a5">COVERAGE</text>
+  <rect x="216" y="502" width="110" height="34" rx="9" fill="#c2410c"/>
+  <text x="271" y="525" font-family="Liberation Sans, sans-serif" font-size="15" fill="#ffffff" text-anchor="middle">Full FBS</text>
+  <rect x="334" y="502" width="100" height="34" rx="9" fill="none" stroke="#3a4150" stroke-width="1.5"/>
+  <text x="384" y="525" font-family="Liberation Sans, sans-serif" font-size="15" fill="#f2f4f8" text-anchor="middle">Top 25</text>
+  <rect x="442" y="502" width="130" height="34" rx="9" fill="none" stroke="#3a4150" stroke-width="1.5"/>
+  <text x="507" y="525" font-family="Liberation Sans, sans-serif" font-size="15" fill="#f2f4f8" text-anchor="middle">Conference</text>
+</svg>

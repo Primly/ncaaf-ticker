@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "primly.ncaaf-ticker",
+  "name": "Football Ticker",
+  "version": "0.2.1",
+  "author": "Primly",
+  "license": "MIT",
+  "description": "Scrolling live college football and NFL scores in the bar. Falls back to the TV schedule when no games are live, plus weekly fantasy leaders.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Football Ticker",
+    "description": "Live NCAAF and NFL scores, TV schedules, fantasy leaders.",
+    "category": "Sports",
+    "allowMultiple": false,
+    "defaultSection": "center",
+    "defaults": {
+      "league": "NCAAF",
+      "tickerMode": "Scores",
+      "scope": "Full FBS",
+      "conference": "sec",
+      "nflScope": "All NFL",
+      "nflDivision": "afc-east",
+      "fantasyScoring": "PPR",
+      "fantasyCount": 5,
+      "showFantasy": true,
+      "closedRefreshSec": 60,
+      "openRefreshSec": 30,
+      "maxWidth": 480,
+      "scrollSpeed": 60,
+      "showNetwork": true,
+      "pauseOnHover": true
+    },
+    "schema": [
+      { "key": "league", "type": "enum", "label": "League", "options": ["NCAAF", "NFL"], "defaultValue": "NCAAF" },
+      { "key": "tickerMode", "type": "enum", "label": "NFL ticker shows", "options": ["Scores", "Fantasy", "Both"], "defaultValue": "Scores" },
+      { "key": "scope", "type": "enum", "label": "College coverage", "options": ["Full FBS", "Top 25", "Conference"], "defaultValue": "Full FBS" },
+      { "key": "conference", "type": "string", "label": "Conference (when college scope is Conference)", "defaultValue": "sec", "description": "Lowercase seo slug: sec, big-ten, big-12, acc, pac-12, american, cusa, mac, mountain-west, sun-belt, fbs-indep." },
+      { "key": "nflScope", "type": "enum", "label": "NFL coverage", "options": ["All NFL", "Division"], "defaultValue": "All NFL" },
+      { "key": "nflDivision", "type": "string", "label": "NFL division (when NFL scope is Division)", "defaultValue": "afc-east", "description": "afc-east, afc-north, afc-south, afc-west, nfc-east, nfc-north, nfc-south, nfc-west." },
+      { "key": "fantasyScoring", "type": "enum", "label": "Fantasy scoring", "options": ["PPR", "Half-PPR", "Standard"], "defaultValue": "PPR" },
+      { "key": "fantasyCount", "type": "integer", "label": "Fantasy leaders per position", "min": 3, "max": 10, "step": 1, "defaultValue": 5 },
+      { "key": "showFantasy", "type": "boolean", "label": "Show fantasy section", "defaultValue": true },
+      { "key": "closedRefreshSec", "type": "integer", "label": "Refresh when panel closed (s)", "min": 30, "max": 900, "step": 5, "defaultValue": 60 },
+      { "key": "openRefreshSec", "type": "integer", "label": "Refresh when panel open (s)", "min": 15, "max": 300, "step": 5, "defaultValue": 30 },
+      { "key": "maxWidth", "type": "integer", "label": "Ticker max width (px)", "min": 200, "max": 900, "step": 10, "defaultValue": 480 },
+      { "key": "scrollSpeed", "type": "integer", "label": "Scroll speed (px/s)", "min": 20, "max": 200, "step": 5, "defaultValue": 60 },
+      { "key": "showNetwork", "type": "boolean", "label": "Show TV network", "defaultValue": true },
+      { "key": "pauseOnHover", "type": "boolean", "label": "Pause on hover", "defaultValue": true }
+    ]
+  }
+}
