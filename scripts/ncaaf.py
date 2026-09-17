@@ -22,7 +22,9 @@ instead of stale finals.
 import datetime
 import json
 import os
+import stat
 import sys
+import time
 import urllib.request
 
 BASE_LIVE = "https://ncaa-api.henrygd.me/scoreboard/football/fbs/{year}/{week}/all-conf"
@@ -32,6 +34,20 @@ UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"}
 CACHE = os.path.expanduser("~/.cache/primly.ncaaf-ticker.json")
 MAX_BYTES = 8 * 1024 * 1024  # largest API payload is ~2MB; refuse anything bigger
 LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+# Hard bounds so a compromised upstream cannot turn the helper into an
+# unbounded request fan-out or an unbounded result blob.
+MAX_BASE_DATES = 7    # distinct remote-derived game dates accepted
+MAX_ESPN_DAYS = 12    # date buckets requested after neighbor expansion
+MAX_GAMES = 200       # NCAAF games kept in the emitted result
+MAX_NFL_GAMES = 50    # NFL games kept in the emitted result
+MAX_OUTPUT_BYTES = 2 * 1024 * 1024  # final serialized result cap
+BUDGET = 50.0         # overall operation deadline, seconds (poll is 60s)
+_START = time.monotonic()
+
+
+def _deadline_hit():
+    return time.monotonic() - _START > BUDGET
 
 
 def _url_ok(url):
@@ -64,6 +80,51 @@ class _GuardedRedirect(urllib.request.HTTPRedirectHandler):
 
 
 _OPENER = urllib.request.build_opener(_GuardedRedirect)
+
+
+def _safe_read_json(path):
+    """Read JSON through O_NOFOLLOW, refusing non-regular files.
+
+    A symlink planted at a predictable cache path must not redirect
+    plugin reads into another file.
+    """
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise ValueError("cache path is not a regular file")
+        with os.fdopen(fd, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except BaseException:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        raise
+
+
+def _safe_write_json(path, obj):
+    """Publish JSON via exclusive temp file plus atomic rename.
+
+    mkstemp uses O_CREAT|O_EXCL, which refuses to follow a pre-planted
+    symlink, and os.replace() swaps the new file into place atomically
+    so readers never observe a half-written cache.
+    """
+    import tempfile
+
+    directory = os.path.dirname(path) or "."
+    if os.path.islink(path):
+        raise ValueError("cache path is a symlink; refusing to replace it")
+    fd, tmp_path = tempfile.mkstemp(dir=directory, prefix=".tmp-", suffix=".json")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(obj, f)
+        os.replace(tmp_path, path)
+    except BaseException:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
 
 # NCAA short names abbreviate ("W. Ky.", "St.", "Fla."); expand so token
 # matching against ESPN's full names ("Western Kentucky") still hits.
@@ -116,6 +177,8 @@ def fetch(year, week, timeout=15):
     urls.append(BASE_S3.format(year=year, week=week))
     last = None
     for url in urls:
+        if _deadline_hit():
+            break
         try:
             # get_json enforces https (or loopback http for self-hosting),
             # guarded redirects, and a response size cap.
@@ -263,7 +326,11 @@ def espn_events_for(dates, timeout=10):
         except ValueError:
             days.add(day)
     events = []
-    for day in sorted(days):
+    # Hard cap: a compromised upstream must not be able to multiply this
+    # into an unbounded fan-out of follow-up requests.
+    for day in sorted(days)[:MAX_ESPN_DAYS]:
+        if _deadline_hit():
+            break
         url = ESPN_WEB + "?" + urllib.parse.urlencode(
             {"dates": day, "groups": "80", "limit": "200"}
         )
@@ -297,6 +364,8 @@ def enrich_games(games):
             continue
     if not dates:
         return games, 0
+    # Cap remote-derived dates before they fan out into follow-up requests.
+    dates = sorted(set(dates))[:MAX_BASE_DATES]
     espn = espn_events_for(dates)
     if not espn:
         return games, 0
@@ -513,6 +582,8 @@ def fetch_nfl(season, week, timeout=12):
 
     games = []
     for day in nfl_week_dates(season, week):
+        if _deadline_hit():
+            break
         url = ESPN_NFL + "?" + urllib.parse.urlencode(
             {"dates": day, "limit": "40"}
         )
@@ -537,17 +608,16 @@ def fetch_fantasy(season, week, stype="regular", timeout=20):
     (pre-game/offseason). Results cache for FANTASY_TTL so the 60s bar
     poll costs one ~1MB download at most every 10 minutes.
     """
-    import time
-
     attempts = [(week, stype)]
     if week > 1:
         attempts.append((week - 1, stype))
     for w, st in attempts:
+        if _deadline_hit():
+            break
         path = fantasy_cache_path(season, st, w)
         try:
             if os.path.exists(path) and time.time() - os.path.getmtime(path) < FANTASY_TTL:
-                with open(path) as f:
-                    cached = json.load(f)
+                cached = _safe_read_json(path)
                 if cached.get("positions"):
                     return cached
         except (OSError, ValueError):
@@ -556,10 +626,11 @@ def fetch_fantasy(season, week, stype="regular", timeout=20):
             data = get_json(SLEEPER_STATS.format(season=season, week=w, stype=st), timeout=timeout)
         except Exception:  # noqa: BLE001 - try cache, then next attempt
             data = None
+        if not isinstance(data, list):
+            data = None
         if not data:
             try:
-                with open(path) as f:
-                    cached = json.load(f)
+                cached = _safe_read_json(path)
                 if cached.get("positions"):
                     return cached
             except (OSError, ValueError):
@@ -591,12 +662,34 @@ def fetch_fantasy(season, week, stype="regular", timeout=20):
             total += len(top)
         if total:
             try:
-                with open(path, "w") as f:
-                    json.dump(out, f)
+                _safe_write_json(path, out)
             except OSError:
                 pass
             return out
     return {"season": season, "week": week, "season_type": stype, "positions": {}}
+
+
+def _bound_output(out):
+    """Cap aggregated remote lists and the final serialized size.
+
+    Reality bounds this (~100 NCAAF + ~20 NFL games), but a compromised
+    upstream could return 100k rows and turn one poll into a multi-MB
+    blob buffered by the shell. Trim lists first, then enforce a byte
+    cap by shedding the optional fantasy section before erroring out.
+    """
+    if isinstance(out.get("games"), list):
+        out["games"] = out["games"][:MAX_GAMES]
+    nfl = out.get("nfl")
+    if isinstance(nfl, dict) and isinstance(nfl.get("games"), list):
+        nfl["games"] = nfl["games"][:MAX_NFL_GAMES]
+    blob = json.dumps(out)
+    if len(blob) <= MAX_OUTPUT_BYTES:
+        return blob
+    out.pop("fantasy", None)
+    blob = json.dumps(out)
+    if len(blob) <= MAX_OUTPUT_BYTES:
+        return blob
+    raise ValueError("result exceeded size cap after trimming")
 
 
 def main(argv):
@@ -674,17 +767,15 @@ def main(argv):
             out["fantasy"] = fantasy
             out["sleeper"] = state
         try:
-            with open(CACHE, "w") as f:
-                json.dump(out, f)
+            _safe_write_json(CACHE, out)
         except OSError:
             pass
-        print(json.dumps(out))
+        print(_bound_output(out))
         return 0
     except Exception as e:  # noqa: BLE001 - report + fall back to cache
         cached = None
         try:
-            with open(CACHE) as f:
-                cached = json.load(f)
+            cached = _safe_read_json(CACHE)
         except (OSError, ValueError):
             cached = None
         if cached:

@@ -36,7 +36,7 @@ BarWidget {
       tickerText.x = 0
       return
     }
-    scrollAnim.paused = root.opened || (root.pauseOnHover && root.hovered)
+    if (scrollAnim.running) scrollAnim.paused = root.opened || (root.pauseOnHover && root.hovered)
     if (!scrollAnim.running) scrollAnim.start()
   }
 

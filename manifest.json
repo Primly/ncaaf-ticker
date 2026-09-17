@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "primly.ncaaf-ticker",
   "name": "Football Ticker",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": "Primly",
   "license": "MIT",
   "description": "Scrolling live college football and NFL scores in the bar. Falls back to the TV schedule when no games are live, plus weekly fantasy leaders.",

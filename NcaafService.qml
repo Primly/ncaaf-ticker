@@ -66,7 +66,29 @@ Item {
   readonly property string helper: decodeURIComponent(Qt.resolvedUrl("scripts/ncaaf.py").toString()).replace(/^file:\/\//, "")
 
   function refresh() {
-    if (!fetch.running) fetch.running = true
+    if (!fetch.running) {
+      fetch.running = true
+      fetchWatchdog.restart()
+    }
+  }
+
+  // Overall deadline (the helper's own budget is 50s): terminate a stuck
+  // helper so polls can never pile up. Setting running=false kills the
+  // process; its exited handler below reaps it and records the outcome.
+  // Stdout/stderr buffering is bounded shell-side by the helper's 2MB
+  // result cap.
+  Timer {
+    id: fetchWatchdog
+    interval: 45000
+    running: false
+    repeat: false
+    onTriggered: {
+      if (fetch.running) {
+        fetch.running = false
+        if (root.games.length === 0 && root.nflGames.length === 0)
+          root.error = "Fetch timed out"
+      }
+    }
   }
 
   Process {
@@ -81,6 +103,7 @@ Item {
       waitForEnd: true
     }
     onExited: function (code) {
+      fetchWatchdog.stop()
       try {
         var result = JSON.parse(fetchOutput.text)
         var hasNcaa = result.games && result.games.length > 0
